@@ -1,0 +1,30 @@
+artifacts = ["/app/editor_audit.json"]
+
+[task]
+name = "afterquery/selection-epoch-rebase"
+
+[metadata]
+author_name = "Thomas Morison"
+author_email = "matiasv931026@gmail.com"
+difficulty_explanation = "The task now couples two different editor histories. The legacy session still requires stale render-epoch selection recovery, while the second session adds a canonical/optimistic split, durable logical boundaries, pending local intents that survive repeated rebases, acknowledgement aliases, rejected optimistic atoms, block-structure changes, and two dependency-constrained server lanes. A plausible implementation can get the rendered text right while losing selection identity, can drain each lane correctly while violating cross-lane dependencies, or can process acknowledgements correctly while replaying later local batches from the wrong state. These mechanisms interact across many checkpoints, so fixing one symptom does not collapse the task into one guard or one event handler. The traces are synthetic but model real failure classes from collaborative rich-text editors, optimistic UI state, and transport replay. A frontend engineer experienced with editor internals and distributed client state would reasonably need several focused hours to inspect the evidence, implement the state model, and validate the rebases and historical selections."
+solution_explanation = "The reference treats selections and local actions as historical logical intents rather than current numeric offsets. It maintains canonical server state separately from the visible optimistic state, preserves atom history for deleted and rejected identities, applies acknowledgement aliases to historical references, schedules server frames by lane sequence plus dependency clocks, and reconstructs the visible document by applying still-pending local intents over each new canonical state. Render snapshots are kept per epoch so DOM endpoints can be converted once and then resolved through later identity history. The simpler first capture is replayed under its original rules and normalized into the same audit schema."
+verification_explanation = "The verifier reads only `/app/editor_audit.json`. It independently replays sealed copies of both sessions, normalizes the first session into the shared checkpoint schema, and checks exact checkpoint count and schema, ordered block snapshots, selection endpoints and direction, selected text, the two-lane server clock, and pending-local order. The expected result is derived from the source traces rather than from candidate claims or candidate code. The no-change environment and deliberately incomplete shortcut outputs score zero; reward is one only when every behavioral comparison passes."
+category = "Software"
+subcategory = "Frontend"
+tags = ["frontend", "javascript", "state-management", "collaboration"]
+expert_time_estimate_hours = 8.0
+relevant_experience = "Relevant software-development experience includes debugging stateful JavaScript workflows, browser-facing event semantics, and deterministic test/replay harnesses."
+
+[verifier]
+timeout_sec = 120.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 7200
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 2
+memory_mb = 2048
+storage_mb = 10240
+gpus = 0
